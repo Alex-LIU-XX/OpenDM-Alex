@@ -20,32 +20,16 @@ DM0.5 is Dexmal's next-generation Vision-Language-Action model (VLA) for open-wo
 
 OpenDM provides DM0.5 model weights, training and inference scripts, dataset registration examples, and evaluation workflows for researchers and developers to train, fine-tune, evaluate, and deploy the model.
 
-## News
+## 🔥 News
 
+- [2026-09-14] 🏆 **DM0.5 ranked first** in Instruction Following, Spatial Reasoning, Robustness, and General Manipulation on [RoboColiseum](https://robocoliseum.ai/leaderboard), making it the only model to sweep all four leaderboards.
 - [2026-08-26] Released [DM05-MEM-Robodojo-Sim](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim), a fine-tuned model for ARX X5 bimanual manipulation tasks in RoboDojo-Sim. See [XPolicyLab PR #101](https://github.com/XPolicyLab/XPolicyLab/pull/101) for evaluation integration.
+- [2026-08-25] 🏆 **DM0.5 topped** the [RoboDojo-Sim](https://robodojo-benchmark.com/) leaderboard, achieving an overall score of 24.90 and an average success rate of 19.34%, with a particularly pronounced lead in the Memory track.
 - [2026-08-03] Published the [physical robot modification guide](docs/en/robot_platforms.md) for AgileX COBOT Magic and DOS-W1, documenting camera changes and the robot-name mapping used by the algorithm.
 - [2026-07-24] DM0.5 has added the SO101 pick cube fine-tuned checkpoint and the LoRA SFT workflow. See the [DM05 SO101 LoRA Training Guide](docs/en/dm05_so101_lora_training.md).
 - [2026-07-17] DM0.5 has open-sourced the RoboTwin2.0 generalist model checkpoint, along with the supervised fine-tuning (SFT) code built upon the DM0.5 pretrained model. See the [DM05 RoboTwin2.0 Training and Evaluation Guide](docs/en/dm05_robotwin2.md).
 - [2026-07-09] DM0.5 is officially released. Read the [technical blog](https://www.dexmal.com/blog/dm0.5/index_en.html) for more details.
 
-
-## Models
-
-| Model | Description | Checkpoint |
-| --- | --- | --- |
-| DM05 | Base DM0.5 model for fine-tuning | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05) |
-| DM05-libero | LIBERO fine-tuned DM0.5 model for evaluation | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-libero) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-libero) |
-| DM05-robotwin2 | RoboTwin2.0 fine-tuned DM0.5 model for evaluation | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-robotwin2) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-robotwin2) |
-| DM05-SO101-Pick-Cube | SO101 fine-tuned DM0.5 model for evaluation | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-SO101-Pick-Cube) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-SO101-Pick-Cube) |
-| DM05-VLA-Arena | VLA-Arena fine-tuned DM0.5 model for evaluation | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-Vla-Arena) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-Vla-Arena) |
-| DM05-Table30v2 | RoboChallenge Table 30 v2 DM0.5 model collection for evaluation | [🤗 Hugging Face](https://huggingface.co/collections/Dexmal/dm05-table30v2) / [🤖 ModelScope](https://www.modelscope.cn/collections/Dexmal/DM05-Table30v2) |
-| DM05-MEM-Robodojo-Sim | RoboDojo-Sim fine-tuned DM0.5 model for ARX X5 bimanual manipulation tasks | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-MEM-Robodojo-Sim) |
-
-Example checkpoint download:
-
-```bash
-huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
-```
 
 ## Benchmark Results
 
@@ -58,12 +42,12 @@ huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
       <th>DM0.5</th>
       <th>Pi0</th>
       <th>Pi0.5</th>
-      <th>GROOT-N1.7</th>
+      <th>GR00T-N1.7</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td rowspan="8"><strong>Simulated Tasks</strong></td>
+      <td rowspan="12"><strong>Simulated Tasks</strong></td>
       <td><strong><a href="docs/en/dm05_libero.md">LIBERO</a></strong></td>
       <td><strong>SR</strong></td>
       <td align="right"><strong>99.0%</strong></td>
@@ -124,6 +108,35 @@ huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
       <td align="right">1.31%</td>
     </tr>
     <tr>
+      <td rowspan="4"><strong><a href="https://robocoliseum.ai/leaderboard">RoboColiseum</a></strong></td>
+      <td><strong>Instruction Following</strong></td>
+      <td align="right"><strong>0.8444</strong></td>
+      <td align="right">0.368</td>
+      <td align="right">0.746</td>
+      <td align="right">0.646</td>
+    </tr>
+    <tr>
+      <td><strong>Spatial Reasoning</strong></td>
+      <td align="right"><strong>0.6146</strong></td>
+      <td align="right">0.130</td>
+      <td align="right">0.356</td>
+      <td align="right">0.249</td>
+    </tr>
+    <tr>
+      <td><strong>Robustness</strong></td>
+      <td align="right"><strong>0.7344</strong></td>
+      <td align="right">0.313</td>
+      <td align="right">0.613</td>
+      <td align="right">0.538</td>
+    </tr>
+    <tr>
+      <td><strong>General Manipulation</strong></td>
+      <td align="right"><strong>0.637</strong></td>
+      <td align="right">0.347</td>
+      <td align="right">0.582</td>
+      <td align="right">0.438</td>
+    </tr>
+    <tr>
       <td rowspan="2"><strong>Real-World Tasks</strong></td>
       <td rowspan="2"><strong><a href="docs/en/dm05_robochallenge.md">RoboChallenge<br>Table30V2</a></strong></td>
       <td><strong>Score</strong></td>
@@ -142,8 +155,26 @@ huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
   </tbody>
 </table>
 
-Click a benchmark name to view the corresponding DM05 training/evaluation guide or evaluation integration. The RoboDojo-Sim leaderboard numbers are for the released [DM05-MEM-Robodojo-Sim](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim) generalist. The linked guide is the `cover_blocks` single-task SFT reference; its training settings do not reproduce the table scores.
+Click a benchmark name to view the corresponding DM05 training/evaluation guide or evaluation integration. The RoboDojo-Sim leaderboard numbers are for the released [DM05-MEM-Robodojo-Sim](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim) generalist. The linked guide is the `cover_blocks` single-task SFT reference; its training settings do not reproduce the table scores. RoboColiseum reports a sample-weighted average of subtask completion scores on a 0–1 scale, rather than a raw task success rate.
 
+
+## Models
+
+| Model | Description | Checkpoint |
+| --- | --- | --- |
+| DM05 | Base DM0.5 model for fine-tuning | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05) |
+| DM05-libero | LIBERO fine-tuned DM0.5 model for evaluation | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-libero) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-libero) |
+| DM05-robotwin2 | RoboTwin2.0 fine-tuned DM0.5 model for evaluation | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-robotwin2) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-robotwin2) |
+| DM05-SO101-Pick-Cube | SO101 fine-tuned DM0.5 model for evaluation | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-SO101-Pick-Cube) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-SO101-Pick-Cube) |
+| DM05-VLA-Arena | VLA-Arena fine-tuned DM0.5 model for evaluation | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-Vla-Arena) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-Vla-Arena) |
+| DM05-Table30v2 | RoboChallenge Table 30 v2 DM0.5 model collection for evaluation | [🤗 Hugging Face](https://huggingface.co/collections/Dexmal/dm05-table30v2) / [🤖 ModelScope](https://www.modelscope.cn/collections/Dexmal/DM05-Table30v2) |
+| DM05-MEM-Robodojo-Sim | RoboDojo-Sim fine-tuned DM0.5 model for ARX X5 bimanual manipulation tasks | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-MEM-Robodojo-Sim) |
+
+Example checkpoint download:
+
+```bash
+huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
+```
 
 ## Quick Start
 

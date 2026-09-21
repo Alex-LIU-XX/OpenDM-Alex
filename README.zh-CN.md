@@ -20,32 +20,16 @@ DM0.5 是 Dexmal 面向开放世界机器人控制发布的新一代视觉-语�
 
 OpenDM 提供 DM0.5 的模型权重、训练与推理脚本、数据注册示例和评测流程，便于研究者和开发者进行持续训练、微调、评测和部署。
 
-## 最新动态
+## 🔥 最新动态
 
+- [2026-09-14] 🏆 **DM0.5 登顶** [RoboColiseum 四项能力榜单](https://robocoliseum.ai/leaderboard)，在指令遵循、空间推理、鲁棒性和通用操作四个维度均排名第一，是唯一包揽四榜第一的模型。
 - [2026-08-26] 发布 [DM05-MEM-Robodojo-Sim](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim)，面向 RoboDojo-Sim 中 ARX X5 双臂操作任务的微调模型，配套评测接入见 [XPolicyLab PR #101](https://github.com/XPolicyLab/XPolicyLab/pull/101)。
+- [2026-08-25] 🏆 **DM0.5 登顶** [RoboDojo-Sim](https://robodojo-benchmark.com/)，综合得分为 24.90，平均成功率为 19.34%，其中 Memory 维度领先优势最为显著。
 - [2026-08-03] 已发布 AgileX COBOT Magic 与 DOS-W1 的[真机机型改动说明](docs/zh/robot_platforms.md)，记录相机改动及机型名称映射。
 - [2026-07-24] DM0.5 已新增 SO101 pick cube 微调 checkpoint 和 LoRA SFT 流程。参考 [DM05 SO101 LoRA 训练指南](docs/zh/dm05_so101_lora_training.md)。
 - [2026-07-17] DM0.5 已开源 RoboTwin2.0 generalist 模型 checkpoint，以及基于 DM0.5 预训练模型的监督微调（SFT）代码。参考 [DM05 RoboTwin2.0 训练与评测指南](docs/zh/dm05_robotwin2.md)。
 - [2026-07-09] DM0.5 正式发布。更多模型细节请阅读[技术博客](https://www.dexmal.com/blog/dm0.5/index.html)。
 
-
-## 模型
-
-| 模型 | 描述 | 权重地址 |
-| --- | --- | --- |
-| DM05 | 用于微调的 DM0.5 基础模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05) |
-| DM05-libero | 用于 LIBERO 评测的 DM0.5 微调模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-libero) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-libero) |
-| DM05-robotwin2 | 用于 RoboTwin2.0 评测的 DM0.5 微调模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-robotwin2) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-robotwin2) |
-| DM05-SO101-Pick-Cube | 用于 SO101 评测的 DM0.5 微调模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-SO101-Pick-Cube) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-SO101-Pick-Cube) |
-| DM05-VLA-Arena | 用于 VLA-Arena 评测的 DM0.5 微调模型 | [训练与评测](docs/zh/dm05_vla_arena.md) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-Vla-Arena) |
-| DM05-Table30v2 | 用于 RoboChallenge Table 30 v2 评测的 DM0.5 模型集合 | [🤗 Hugging Face](https://huggingface.co/collections/Dexmal/dm05-table30v2) / [🤖 ModelScope](https://www.modelscope.cn/collections/Dexmal/DM05-Table30v2) |
-| DM05-MEM-Robodojo-Sim | 用于 RoboDojo-Sim 中 ARX X5 双臂操作任务的 DM0.5 微调模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-MEM-Robodojo-Sim) |
-
-模型下载示例：
-
-```bash
-huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
-```
 
 ## Benchmark 结果
 
@@ -58,12 +42,12 @@ huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
       <th>DM0.5</th>
       <th>Pi0</th>
       <th>Pi0.5</th>
-      <th>GROOT-N1.7</th>
+      <th>GR00T-N1.7</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td rowspan="8"><strong>Simulated Tasks</strong></td>
+      <td rowspan="12"><strong>Simulated Tasks</strong></td>
       <td><strong><a href="docs/zh/dm05_libero.md">LIBERO</a></strong></td>
       <td><strong>SR</strong></td>
       <td align="right"><strong>99.0%</strong></td>
@@ -124,6 +108,35 @@ huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
       <td align="right">1.31%</td>
     </tr>
     <tr>
+      <td rowspan="4"><strong><a href="https://robocoliseum.ai/leaderboard">RoboColiseum</a></strong></td>
+      <td><strong>指令遵循</strong></td>
+      <td align="right"><strong>0.8444</strong></td>
+      <td align="right">0.368</td>
+      <td align="right">0.746</td>
+      <td align="right">0.646</td>
+    </tr>
+    <tr>
+      <td><strong>空间推理</strong></td>
+      <td align="right"><strong>0.6146</strong></td>
+      <td align="right">0.130</td>
+      <td align="right">0.356</td>
+      <td align="right">0.249</td>
+    </tr>
+    <tr>
+      <td><strong>鲁棒性</strong></td>
+      <td align="right"><strong>0.7344</strong></td>
+      <td align="right">0.313</td>
+      <td align="right">0.613</td>
+      <td align="right">0.538</td>
+    </tr>
+    <tr>
+      <td><strong>通用操作</strong></td>
+      <td align="right"><strong>0.637</strong></td>
+      <td align="right">0.347</td>
+      <td align="right">0.582</td>
+      <td align="right">0.438</td>
+    </tr>
+    <tr>
       <td rowspan="2"><strong>Real-World Tasks</strong></td>
       <td rowspan="2"><strong><a href="docs/zh/dm05_robochallenge.md">RoboChallenge<br>Table30V2</a></strong></td>
       <td><strong>Score</strong></td>
@@ -142,7 +155,25 @@ huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
   </tbody>
 </table>
 
-点击表格中的 Benchmark 名称，可查看 DM05 在对应数据集下的训练、评测文档或评测接入。RoboDojo-Sim 榜单对应已发布的 [DM05-MEM-Robodojo-Sim](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim) generalist；链接中的指南是 `cover_blocks` 单任务微调参考，其中的训练配置不能直接用来复现表中分数。
+点击表格中的 Benchmark 名称，可查看 DM05 在对应数据集下的训练、评测文档或评测接入。RoboDojo-Sim 榜单对应已发布的 [DM05-MEM-Robodojo-Sim](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim) generalist；链接中的指南是 `cover_blocks` 单任务微调参考，其中的训练配置不能直接用来复现表中分数。RoboColiseum 的分数是各任务子步骤完成分数按样本数加权后的平均值，以 0–1 小数展示，并非整项任务的原始成功率。
+
+## 模型
+
+| 模型 | 描述 | 权重地址 |
+| --- | --- | --- |
+| DM05 | 用于微调的 DM0.5 基础模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05) |
+| DM05-libero | 用于 LIBERO 评测的 DM0.5 微调模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-libero) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-libero) |
+| DM05-robotwin2 | 用于 RoboTwin2.0 评测的 DM0.5 微调模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-robotwin2) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-robotwin2) |
+| DM05-SO101-Pick-Cube | 用于 SO101 评测的 DM0.5 微调模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-SO101-Pick-Cube) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-SO101-Pick-Cube) |
+| DM05-VLA-Arena | 用于 VLA-Arena 评测的 DM0.5 微调模型 | [训练与评测](docs/zh/dm05_vla_arena.md) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-Vla-Arena) |
+| DM05-Table30v2 | 用于 RoboChallenge Table 30 v2 评测的 DM0.5 模型集合 | [🤗 Hugging Face](https://huggingface.co/collections/Dexmal/dm05-table30v2) / [🤖 ModelScope](https://www.modelscope.cn/collections/Dexmal/DM05-Table30v2) |
+| DM05-MEM-Robodojo-Sim | 用于 RoboDojo-Sim 中 ARX X5 双臂操作任务的 DM0.5 微调模型 | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM05-MEM-Robodojo-Sim) / [🤖 ModelScope](https://modelscope.cn/models/Dexmal/DM05-MEM-Robodojo-Sim) |
+
+模型下载示例：
+
+```bash
+huggingface-cli download Dexmal/DM05 --local-dir ./checkpoints/DM05
+```
 
 ## 快速开始
 
