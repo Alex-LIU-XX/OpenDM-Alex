@@ -178,3 +178,7 @@ playground/user
 
 flash_attn-2.8.3-cp310-cp310-linux_x86_64.whl
 norm_stats
+
+# .smoke 工作区：只入库 scripts/ 与 README，运行日志与产物留在本地
+.smoke/logs/
+.smoke/artifacts/
