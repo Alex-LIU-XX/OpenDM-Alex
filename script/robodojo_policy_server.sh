@@ -26,11 +26,17 @@ XPL_DIR="$WORKDIR/xpl"                    # holds XPolicyLab/ + env_cfg/
 VENV="$WORKDIR/policy_venv"
 ROBODOJO_REPO="${ROBODOJO_REPO:-/root/workspace/RoboDojo}"   # source of XPolicyLab + env_cfg
 CKPT="${ROBODOJO_CKPT:-/mnt/cfs/opendm/checkpoints/DM05-MEM-Robodojo-Sim}"
-PORT="${ROBODOJO_PORT:-7891}"
+PORT="${ROBODOJO_PORT:-7891}"          # base port; proc i listens on PORT+i
+PROCS="${ROBODOJO_PROCS:-1}"           # number of independent policy-server processes
 TASK="${ROBODOJO_TASK:-cover_blocks}"
 BIND_HOST="${ROBODOJO_BIND_HOST:-127.0.0.1}"
 GPU="${ROBODOJO_GPU:-0}"
 BASE_PY="${OPENDM_PYTHON:-/root/miniconda3/envs/opendm/bin/python}"
+
+# One log file per process, plus a pid/port table used by status/stop.
+LOG_DIR="${ROBODOJO_LOG_DIR:-/tmp/robodojo_policy_server}"
+PORTS_FILE="$LOG_DIR/ports"
+READY_TIMEOUT="${ROBODOJO_READY_TIMEOUT:-420}"
 
 # Inference contract of the RoboDojo leaderboard model - do not change casually.
 POLICY_NAME="OpenDM"
@@ -66,13 +72,19 @@ Options:
 
   start
     --ckpt PATH            Checkpoint dir (default: DM05-MEM-Robodojo-Sim on CFS)
-    --port N               TCP port (default 7891)
+    --port N               Base TCP port (default 7891); process i listens on N+i
+    --procs K              Independent server processes (default 1)
     --bind-host HOST       Bind address (default 127.0.0.1; keep loopback when tunnelling)
     --task NAME            Task name recorded by the server (default cover_blocks)
     --gpu ID               CUDA_VISIBLE_DEVICES for the policy server (default 0)
 
+    Each process loads its own copy of the weights, so VRAM scales with --procs
+    (~23 GB each for DM0.5). Two processes also lift the single-process asyncio
+    model lock, which is what caps one process at ~1 inference/s.
+
   status | stop
-    no options
+    --port N               Base port used when the servers were started (default 7891)
+    --procs K              Expected process count, for reporting (default 1)
 EOF
 }
 
@@ -158,10 +170,37 @@ require_staged() {
     [ -e "$CKPT/norm_stats.json" ]   || die "norm_stats.json not found in $CKPT"
 }
 
+listening() {
+    local port="$1"
+    if command -v ss >/dev/null 2>&1; then
+        ss -lnt 2>/dev/null | grep -q ":$port "
+    else
+        timeout 1 bash -c "</dev/tcp/$BIND_HOST/$port" 2>/dev/null
+    fi
+}
+
+# Readiness is judged by the listening socket, not by stdout: the server's
+# progress bar is block-buffered and useless as a signal.
+wait_for_port() {
+    local port="$1" deadline=$((SECONDS + READY_TIMEOUT))
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        listening "$port" && return 0
+        sleep 3
+    done
+    return 1
+}
+
 do_start() {
     require_staged
-    info "serving $POLICY_NAME on $BIND_HOST:$PORT  (task=$TASK, gpu=$GPU)"
-    info "loading $CKPT - first run takes ~2-3 min, later runs ~20-40s"
+    case "$PROCS" in ''|*[!0-9]*) die "--procs must be a positive integer, got: $PROCS" ;; esac
+    [ "$PROCS" -ge 1 ] || die "--procs must be >= 1"
+
+    local last_port=$((PORT + PROCS - 1))
+    info "serving $POLICY_NAME on $BIND_HOST:$PORT..$last_port  (procs=$PROCS, task=$TASK, gpu=$GPU)"
+    info "each process loads its own copy of $CKPT (~23 GB VRAM each)"
+
+    mkdir -p "$LOG_DIR"
+    : > "$PORTS_FILE"
 
     export MODEL_PATH="$CKPT"
     export NORM_STATS_PATH="$CKPT/norm_stats.json"   # a FILE, not a directory
@@ -169,52 +208,85 @@ do_start() {
     # A stale proxy in the container image breaks model loading; clear it.
     unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
 
-    # setup_policy_server.py imports client_server.* from its own directory and
-    # the adapter pulls exp/opendm from the staged tree.
-    cd "$POLICY_DIR"
-    exec env PYTHONWARNINGS=ignore::UserWarning CUDA_VISIBLE_DEVICES="$GPU" \
-        "$VENV/bin/python" "$XPL_ROOT/setup_policy_server.py" \
-            --config_path "$POLICY_DIR/deploy.yml" \
-            --overrides \
-                port="$PORT" \
-                host="$BIND_HOST" \
-                bench_name=RoboDojo \
-                task_name="$TASK" \
-                ckpt_name=external \
-                env_cfg_type="$ENV_CFG" \
-                seed=0 \
-                policy_name="$POLICY_NAME" \
-                action_type="$ACTION_TYPE" \
-                action_steps="$ACTION_STEPS" \
-                model_path="$CKPT" \
-                norm_stats_path="$CKPT/norm_stats.json"
+    local i port log
+    local failed=0
+    for (( i=0; i<PROCS; i++ )); do
+        port=$((PORT + i))
+        log="$LOG_DIR/server_${port}.log"
+        echo "$port" >> "$PORTS_FILE"
+        # Run from the policy dir: setup_policy_server.py imports client_server.*
+        # from beside itself, and the adapter pulls exp/opendm from the staged
+        # tree. setsid + </dev/null fully detaches the process, so a closing SSH
+        # session cannot take the server with it (a foreground start used to be
+        # killed by the caller's timeout, losing all of its output).
+        setsid bash -c "
+            cd '$POLICY_DIR' || exit 1
+            exec env PYTHONWARNINGS=ignore::UserWarning CUDA_VISIBLE_DEVICES='$GPU' \
+                '$VENV/bin/python' '$XPL_ROOT/setup_policy_server.py' \
+                    --config_path '$POLICY_DIR/deploy.yml' \
+                    --overrides \
+                        port='$port' host='$BIND_HOST' bench_name=RoboDojo \
+                        task_name='$TASK' ckpt_name=external env_cfg_type='$ENV_CFG' \
+                        seed=0 policy_name='$POLICY_NAME' action_type='$ACTION_TYPE' \
+                        action_steps='$ACTION_STEPS' model_path='$CKPT' \
+                        norm_stats_path='$CKPT/norm_stats.json'
+        " > "$log" 2>&1 < /dev/null &
+        info "proc $((i + 1))/$PROCS  port=$port  log=$log"
+
+        # Load strictly one at a time. A single process peaks around 60 GB of
+        # host RAM while materialising the F32 weights, so bringing K of them
+        # up together OOMs the container (119 GB cgroup on this box) even
+        # though the GPUs would cope.
+        if wait_for_port "$port"; then
+            info "port $port ready"
+        else
+            warn "port $port did not come up -- see $log"
+            failed=1
+            break
+        fi
+    done
+
+    command -v nvidia-smi >/dev/null 2>&1 && \
+        echo "gpu    : $(nvidia-smi --query-gpu=memory.used,utilization.gpu --format=csv,noheader | head -1)"
+    echo
+    echo "client endpoint:  --policy-host $BIND_HOST --policy-port $(paste -sd, "$PORTS_FILE")"
+    [ "$failed" -eq 0 ] || die "one or more policy servers failed to start"
 }
 
 # Matches the server process without matching this script's own command line.
 SERVER_PATTERN='setup_policy_serve[r].py'
 
 do_status() {
-    local pid
-    pid="$(pgrep -f "$SERVER_PATTERN" | head -1 || true)"
-    if [ -n "$pid" ]; then
-        echo "server : running (pid $pid)"
-        tr '\0' ' ' < "/proc/$pid/cmdline" | sed 's/--overrides.*/--overrides .../' | fold -w 120 | sed 's/^/         /'
-        echo
-    else
-        echo "server : not running"
+    local pids count pid port
+    # `|| true` keeps `set -e` happy when pgrep matches nothing.
+    pids="$(pgrep -f "$SERVER_PATTERN" || true)"
+    count="$(printf '%s' "$pids" | grep -c . || true)"
+    echo "procs  : $count running (expected $PROCS on ports $PORT..$((PORT + PROCS - 1)))"
+    if [ "$count" -gt 0 ]; then
+        while read -r pid; do
+            [ -n "$pid" ] || continue
+            printf '         pid %-8s %s\n' "$pid" \
+                "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -o 'port=[0-9]*' | head -1)"
+        done <<< "$pids"
     fi
-    if command -v ss >/dev/null 2>&1 && ss -lntp 2>/dev/null | grep -q ":$PORT"; then
-        echo "port   : $PORT listening"
-    else
-        echo "port   : $PORT not listening"
-    fi
+    for (( port=PORT; port<PORT+PROCS; port++ )); do
+        if listening "$port"; then
+            echo "port   : $port listening"
+        else
+            echo "port   : $port NOT listening"
+        fi
+    done
     command -v nvidia-smi >/dev/null 2>&1 && \
         echo "gpu    : $(nvidia-smi --query-gpu=memory.used,utilization.gpu --format=csv,noheader | head -1)"
     echo "staged : $([ -d "$POLICY_DIR" ] && echo yes || echo no)  |  venv: $([ -x "$VENV/bin/python" ] && echo yes || echo no)"
 }
 
 do_stop() {
-    if pgrep -f "$SERVER_PATTERN" >/dev/null; then
+    local pids count
+    pids="$(pgrep -f "$SERVER_PATTERN" || true)"
+    if [ -n "$pids" ]; then
+        count="$(printf '%s' "$pids" | grep -c . || true)"
+        info "stopping $count policy server process(es)"
         pkill -f "$SERVER_PATTERN" || true
         sleep 3
         pgrep -f "$SERVER_PATTERN" >/dev/null && die "server still running" || info "server stopped"
@@ -251,6 +323,7 @@ main() {
                 case "$1" in
                     --ckpt)      CKPT="$2"; shift 2 ;;
                     --port)      PORT="$2"; shift 2 ;;
+                    --procs)     PROCS="$2"; shift 2 ;;
                     --bind-host) BIND_HOST="$2"; shift 2 ;;
                     --task)      TASK="$2"; shift 2 ;;
                     --gpu)       GPU="$2"; shift 2 ;;
@@ -260,8 +333,19 @@ main() {
             done
             do_start
             ;;
-        status) do_status ;;
-        stop)   do_stop ;;
+        status|stop)
+            # --port/--procs only shape the report; a single pgrep/pkill covers
+            # every process this script ever started.
+            while [ "$#" -gt 0 ]; do
+                case "$1" in
+                    --port)  PORT="$2"; shift 2 ;;
+                    --procs) PROCS="$2"; shift 2 ;;
+                    -h|--help) usage; exit 0 ;;
+                    *) die "unknown option for $cmd: $1" ;;
+                esac
+            done
+            if [ "$cmd" = "status" ]; then do_status; else do_stop; fi
+            ;;
         -h|--help|help) usage ;;
         *) usage; exit 2 ;;
     esac
