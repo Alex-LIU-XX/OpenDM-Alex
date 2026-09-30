@@ -6,15 +6,19 @@
 #   2) setup.py 默认先去 GitHub releases 找预编译 wheel（setup.py:56），容器里
 #      github.com:443 能建连但永不返回，进程会无限期挂住 —— 必须
 #      FLASH_ATTENTION_FORCE_BUILD=TRUE 强制本地编译。
-#   3) 容器 cgroup 内存上限只有 119 GiB（宿主机 1 TB），而默认 gencode 会同时编
-#      sm80/90/100/120 四套架构，MAX_JOBS=48 直接打满上限触发 OOM（cicc 被 kill）。
-#      —— 限定 TORCH_CUDA_ARCH_LIST=8.0（本机只有 A100）并下调 MAX_JOBS。
+#   3) 容器 cgroup 内存上限只有 119 GiB（宿主机 1 TB），而 setup.py 默认按
+#      sm80/90/100/120 四套架构生成 gencode，2026-09-21 那次 MAX_JOBS=16 直接把
+#      上限打爆（多个 nvcc 被 OOM killer `Killed` → ninja exit 255）。
+#      —— 必须用 FLASH_ATTN_CUDA_ARCHS 限成 80（本机只有 A100），并下调 MAX_JOBS。
+#      ⚠️ 注意：架构开关是 FLASH_ATTN_CUDA_ARCHS，不是 TORCH_CUDA_ARCH_LIST！
+#      setup.py:70 `os.getenv("FLASH_ATTN_CUDA_ARCHS", "80;90;100;120")` 只认前者，
+#      设 TORCH_CUDA_ARCH_LIST 完全无效（上次就是这么白编了四套架构）。
 set -uo pipefail
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
 export PATH=/root/miniconda3/envs/opendm/bin:$PATH
-export MAX_JOBS="${MAX_JOBS:-16}"
+export MAX_JOBS="${MAX_JOBS:-8}"
 export FLASH_ATTENTION_FORCE_BUILD=TRUE
-export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-8.0}"
+export FLASH_ATTN_CUDA_ARCHS="${FLASH_ATTN_CUDA_ARCHS:-80}"
 PY=/root/miniconda3/envs/opendm/bin/python
 SMOKE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # .smoke/ 目录
 SDIST="$SMOKE/artifacts/flash_attn-2.8.3.tar.gz"
@@ -25,7 +29,7 @@ if [ ! -f "$SDIST" ]; then
   exit 1
 fi
 
-echo "[$(date '+%F %T')] MAX_JOBS=$MAX_JOBS FORCE_BUILD=TRUE ARCH=$TORCH_CUDA_ARCH_LIST"
+echo "[$(date '+%F %T')] MAX_JOBS=$MAX_JOBS FORCE_BUILD=TRUE FLASH_ATTN_CUDA_ARCHS=$FLASH_ATTN_CUDA_ARCHS SDIST=$SDIST"
 "$PY" -u -m pip install "$SDIST" --no-build-isolation --no-deps -v
 rc=$?
 echo "[$(date '+%F %T')] pip rc=$rc"
